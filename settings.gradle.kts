@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "network-helper"
+rootProject.name = "ktor-helper"
 include(":app")
 include(":library:ktor-helper")
