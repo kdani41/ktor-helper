@@ -1,67 +1,130 @@
-@file:OptIn(InternalSerializationApi::class)
+package com.kdani.ktor.helpers
 
-import com.kdani.ktor.helpers.NetworkResponse
 import com.kdani.ktor.RequestOptions
+import com.kdani.ktor.exceptions.NoNetworkException
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.request
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
-import io.ktor.client.request.url
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
-import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 
-suspend inline fun <reified T : Any> HttpClient.safeRequest(
-    requestBuilder: HttpRequestBuilder,
-    requestOptions: RequestOptions = RequestOptions()
+/**
+ * Perform a GET request and return a wrapped NetworkResponse
+ */
+suspend inline fun <reified T> HttpClient.safeGet(
+    urlString: String,
+    requestOptions: RequestOptions? = null,
+    crossinline block: HttpRequestBuilder.() -> Unit = {}
+): NetworkResponse<T> = performSafeRequest {
+    val response = get(urlString) {
+        requestOptions?.let { applyRequestOptions(it) }
+        block()
+    }
+    response.body<T>()
+}
+
+/**
+ * Perform a POST request and return a wrapped NetworkResponse
+ */
+suspend inline fun <reified T, reified R> HttpClient.safePost(
+    urlString: String,
+    body: R,
+    requestOptions: RequestOptions? = null,
+    crossinline block: HttpRequestBuilder.() -> Unit = {}
+): NetworkResponse<T> = performSafeRequest {
+    val response = post(urlString) {
+        contentType(ContentType.Application.Json)
+        setBody(body)
+        requestOptions?.let { applyRequestOptions(it) }
+        block()
+    }
+    response.body<T>()
+}
+
+/**
+ * Perform a PUT request and return a wrapped NetworkResponse
+ */
+suspend inline fun <reified T, reified R> HttpClient.safePut(
+    urlString: String,
+    body: R,
+    requestOptions: RequestOptions? = null,
+    crossinline block: HttpRequestBuilder.() -> Unit = {}
+): NetworkResponse<T> = performSafeRequest {
+    val response = put(urlString) {
+        contentType(ContentType.Application.Json)
+        setBody(body)
+        requestOptions?.let { applyRequestOptions(it) }
+        block()
+    }
+    response.body<T>()
+}
+
+/**
+ * Perform a DELETE request and return a wrapped NetworkResponse
+ */
+suspend inline fun <reified T> HttpClient.safeDelete(
+    urlString: String,
+    requestOptions: RequestOptions? = null,
+    crossinline block: HttpRequestBuilder.() -> Unit = {}
+): NetworkResponse<T> = performSafeRequest {
+    val response = delete(urlString) {
+        requestOptions?.let { applyRequestOptions(it) }
+        block()
+    }
+    response.body<T>()
+}
+
+/**
+ * Internal helper to execute requests safely and wrap responses
+ */
+@PublishedApi
+internal suspend inline fun <T> performSafeRequest(
+    crossinline block: suspend () -> T
 ): NetworkResponse<T> {
     return try {
-        // Add headers to the request
-        requestOptions.headers.forEach { (key, value) ->
-            requestBuilder.headers.append(key, value)
-        }
-
-        // Add query parameters to the request
-        requestOptions.queryParams.forEach { (key, value) ->
-            requestBuilder.url.parameters.append(key, value)
-        }
-
-        val response = this.request(requestBuilder)
-        val responseBody: String = response.bodyAsText()
-        when (response.status) {
-            HttpStatusCode.NoContent -> NetworkResponse.Empty
-            HttpStatusCode.OK -> {
-                try {
-                    val data = Json.decodeFromString(T::class.serializer(), responseBody)
-                    NetworkResponse.Success(data)
-                } catch (e: SerializationException) {
-                    NetworkResponse.ApiError(e)
-                }
-            }
-
-            else -> NetworkResponse.ApiError(Exception("HTTP error with status code: ${response.status.value}"))
-        }
+        val data = block()
+        NetworkResponse.Success(data)
+    } catch (e: NoNetworkException) {
+        NetworkResponse.NetworkError(
+            exception = e,
+            message = "No network connection available"
+        )
+    } catch (e: ClientRequestException) {
+        NetworkResponse.Error(
+            message = e.response.status.description,
+            code = e.response.status.value,
+            throwable = e
+        )
+    } catch (e: ServerResponseException) {
+        NetworkResponse.Error(
+            message = "Server error: ${e.response.status.description}",
+            code = e.response.status.value,
+            throwable = e
+        )
     } catch (e: Exception) {
-        NetworkResponse.ApiError(e)
+        NetworkResponse.NetworkError(
+            exception = e,
+            message = e.message ?: "Unknown network error"
+        )
     }
 }
 
-suspend inline fun <reified T : Any> HttpClient.safeCall(
-    url: String,
-    httpMethod: HttpMethod,
-    requestOptions: RequestOptions = RequestOptions(),
-): NetworkResponse<T> {
-    val request = HttpRequestBuilder().apply {
-        url(url)
-        method = httpMethod
-        requestOptions.body?.let {
-            setBody(it)
-        }
+/**
+ * Apply request options to the request builder
+ */
+@PublishedApi
+internal fun HttpRequestBuilder.applyRequestOptions(options: RequestOptions) {
+    options.headers.forEach { (key, value) ->
+        headers.append(key, value)
     }
-
-    return safeRequest(request, requestOptions)
+    options.queryParams.forEach { (key, value) ->
+        url.parameters.append(key, value)
+    }
 }

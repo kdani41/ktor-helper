@@ -51,8 +51,6 @@ android {
 }
 
 dependencies {
-
-//    implementation(libs.kdani.network)
     implementation(project(":library:ktor-helper"))
     implementation(libs.hilt)
     implementation(libs.hilt.compose)
