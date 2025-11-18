@@ -1,26 +1,132 @@
-# KtorStarter
+# Ktor Helper — Kotlin Multiplatform Networking Library
 [![Maven Central Version](https://img.shields.io/maven-central/v/io.github.kdani41/kdani-ktor-network)](https://central.sonatype.com/artifact/io.github.kdani41/kdani-ktor-network/)
 
-### Description
-Light weight library to simplify network calls using ktor & kotlinx serialization.
+A lightweight **Kotlin Multiplatform (KMP)** wrapper around **Ktor Client**, designed to provide a clean, unified, and testable networking layer for Android, iOS, and JVM.
 
-### Assumptions 
-- kotlinx used for serialization.
+This library simplifies:
 
-### Features
-- Allows easy access to build retrofit instance.
-- Returns the responses in sealed wrapper called [`NetworkResponse`](https://github.com/kdani41/network-helper/blob/main/library/network/src/main/java/com/kdani/core/network/NetworkResponse.kt)
-- Inbuilt no network connection manager.
-- By default adds network permission for you.
+- Client creation via `buildClient()`
+- JSON serialization
+- Base URL handling
+- Timeout configuration
+- Offline detection (via `NetworkInterceptor`)
+- Custom Ktor configuration via `HttpClientInterceptor` (λ-based)
 
-### Installation 
-```kotlin 
+---
 
-dependencies {
-   implementation("io.github.kdani41:kdani-ktor-network:[version]") 
+# ✨ Features
+
+- 🧩 Simple, extensible **`buildClient()`** API
+- 🌍 KMP-ready (`commonMain`)
+- 🔐 Auth + header injection via **lambda interceptors**
+- 📡 Automatic base URL injection
+- ⏳ Unified timeout handling
+- 📶 Automatic network availability detection
+- 🧪 Testable, modular design
+
+---
+
+# 📦 Installation
+
+```kotlin
+commonMain {
+    dependencies {
+        implementation("com.kdani.ktor.helper:ktor-helper")
+    }
 }
-
 ```
 
-### [Usage](https://github.com/kdani41/network-helper/tree/main/app/src/main/java/com/kdani/network_helper)
-TBD
+---
+
+# 🚀 Creating the Client
+
+### Example
+
+```kotlin
+class ApiClient {
+
+    private val client = KtorHelper.buildClient(
+        baseUrl = "https://api.example.com",
+        timeoutInMillis = 10_000,
+        interceptors = listOf(
+            authInterceptor,
+        )
+    )
+}
+```
+
+---
+
+# 🛠 Custom Interceptor Examples
+
+## 1. Auth Header Interceptor
+
+```kotlin
+val authInterceptor: HttpClientInterceptor = {
+    defaultRequest {
+        val token = tokenProvider()
+        if (token != null) {
+            headers.append("Authorization", "Bearer $token")
+        }
+    }
+}
+```
+
+Usage:
+
+```kotlin
+buildClient(
+    baseUrl = "https://api.example.com",
+    interceptors = listOf(authInterceptor)
+)
+```
+
+---
+
+## 2. Logging Interceptor
+
+```kotlin
+val loggingInterceptor: HttpClientInterceptor = {
+    install(Logging) {
+        level = LogLevel.ALL
+    }
+}
+```
+
+---
+
+# 📡 Making Requests
+
+
+### GET
+
+```kotlin
+suspend fun fetchUser(id: String): NetworkResponse<UserDto> =
+    client.safeGet<UserDto>("/users/$id")
+```
+
+---
+
+### POST
+
+```kotlin
+suspend fun createUser(name: String): NetworkResponse<UserDto> =
+    client.safePost<UserDto>(
+        urlString = "/users",
+        body = CreateUserRequest(name)
+    )
+```
+
+---
+
+# 🧱 Models Example
+
+```kotlin
+@kotlinx.serialization.Serializable
+data class UserDto(
+    val id: String,
+    val name: String,
+    val email: String
+)
+```
+
