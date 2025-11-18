@@ -1,6 +1,5 @@
 package com.kdani.network_helper.network.ktor
 
-import com.kdani.network_helper.network.EmployeeType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -14,7 +13,6 @@ internal data class KtorEmployee(
     @SerialName("photo_url_small") val photoImage: String?,
     @SerialName("photo_url_large") val photoImageLrg: String?,
     @SerialName("team") val team: String,
-    @SerialName("employee_type") val employeeType: EmployeeType,
 )
 
 @Serializable

@@ -19,11 +19,11 @@ import io.ktor.http.contentType
  * Perform a GET request and return a wrapped NetworkResponse
  */
 suspend inline fun <reified T> HttpClient.safeGet(
-    urlString: String,
+    url: String,
     requestOptions: RequestOptions? = null,
     crossinline block: HttpRequestBuilder.() -> Unit = {}
 ): NetworkResponse<T> = performSafeRequest {
-    val response = get(urlString) {
+    val response = get(url) {
         requestOptions?.let { applyRequestOptions(it) }
         block()
     }
@@ -33,13 +33,13 @@ suspend inline fun <reified T> HttpClient.safeGet(
 /**
  * Perform a POST request and return a wrapped NetworkResponse
  */
-suspend inline fun <reified T, reified R> HttpClient.safePost(
-    urlString: String,
-    body: R,
+suspend inline fun <reified T> HttpClient.safePost(
+    url: String,
+    body: Any,
     requestOptions: RequestOptions? = null,
     crossinline block: HttpRequestBuilder.() -> Unit = {}
 ): NetworkResponse<T> = performSafeRequest {
-    val response = post(urlString) {
+    val response = post(url) {
         contentType(ContentType.Application.Json)
         setBody(body)
         requestOptions?.let { applyRequestOptions(it) }
@@ -51,13 +51,13 @@ suspend inline fun <reified T, reified R> HttpClient.safePost(
 /**
  * Perform a PUT request and return a wrapped NetworkResponse
  */
-suspend inline fun <reified T, reified R> HttpClient.safePut(
-    urlString: String,
-    body: R,
+suspend inline fun <reified T> HttpClient.safePut(
+    url: String,
+    body: Any,
     requestOptions: RequestOptions? = null,
     crossinline block: HttpRequestBuilder.() -> Unit = {}
 ): NetworkResponse<T> = performSafeRequest {
-    val response = put(urlString) {
+    val response = put(url) {
         contentType(ContentType.Application.Json)
         setBody(body)
         requestOptions?.let { applyRequestOptions(it) }
@@ -70,11 +70,11 @@ suspend inline fun <reified T, reified R> HttpClient.safePut(
  * Perform a DELETE request and return a wrapped NetworkResponse
  */
 suspend inline fun <reified T> HttpClient.safeDelete(
-    urlString: String,
+    url: String,
     requestOptions: RequestOptions? = null,
     crossinline block: HttpRequestBuilder.() -> Unit = {}
 ): NetworkResponse<T> = performSafeRequest {
-    val response = delete(urlString) {
+    val response = delete(url) {
         requestOptions?.let { applyRequestOptions(it) }
         block()
     }
