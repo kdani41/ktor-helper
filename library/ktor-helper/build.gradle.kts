@@ -24,6 +24,8 @@ kotlin {
     applyDefaultHierarchyTemplate()
     jvm()
     iosX64()
+    iosArm64()
+    iosSimulatorArm64()
     androidTarget {
         publishLibraryVariants("release")
     }
@@ -38,6 +40,11 @@ kotlin {
                 implementation(libs.ktor.client.cio)
                 implementation(libs.ktor.kotlinx.serialization)
                 implementation(libs.coroutines.core)
+            }
+        }
+        val androidMain by getting {
+            dependencies {
+                implementation(libs.ktor.client.android)
             }
         }
         val iosMain by getting {
